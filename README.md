@@ -13,10 +13,9 @@ No ROM or MicroPython firmware is distributed with this app.
 **Save project** saves the ROM, current 2 MiB simulated flash, and original
 firmware flash in one `.pico` file in My files. It saves to browser storage
 first; the existing account service synchronizes that file to the server.
-Save is explicit, not automatic. Open the project again after a reload to
+Save is explicit, not automatic. Open the project again after a reload, including directly from Files, to
 restart the board with the saved flash; CPU execution and serial session state
-are not restored. Each window has independent in-memory state. Two windows can
-open the same project, but a conflicting save must be resolved in Files.
+are not restored. Each window has independent in-memory state. Two windows can open the same project; an out-of-date save is rejected so the newer copy is not overwritten. A folder picker and replacement confirmation are available. Closing or replacing a running firmware board warns because it may have flash changes not yet captured.
 **Reset flash** discards that window's simulated flash changes and starts the
 original firmware; save afterward to retain the reset. These files are user
 account data, not the temporary v86 Linux filesystem.
@@ -72,3 +71,5 @@ offers a physical-RP2040-only license or GPLv2. Do not bundle a ROM until its
 exact binary/source match, applicable GPLv2 terms, corresponding source,
 notices and reproducible distribution have been reviewed. The MIT-licensed
 rp2040js and Wokwi Elements dependency licenses are included by the app builder.
+
+Local real-firmware account tests checked invalid-project recovery, close warnings, competing saves, and reopening through Files in a fresh phone-sized session. The live test uses only the bundled Blink example; private ROM and firmware test fixtures are not uploaded to the live site. Physical touch and arbitrary firmware compatibility remain unverified.
