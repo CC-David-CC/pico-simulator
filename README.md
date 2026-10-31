@@ -10,6 +10,15 @@ the firmware and provides a USB serial command line. The emulator supports a
 subset of Pico hardware; firmware and peripheral compatibility are not general.
 No ROM or MicroPython firmware is distributed with this app.
 
+ROM and UF2 may be opened in either order; the board starts once both are
+loaded. The serial console sends UTF-8 text plus CR/LF and provides Ctrl+C and
+Ctrl+D for MicroPython. Each send is limited to 256 bytes including CR/LF;
+input remains in the field if the device is not ready or its USB buffer is
+full. A queued command may not have been consumed by the firmware yet. The
+tested MicroPython 1.20 interactive REPL dropped non-ASCII input, so use Python
+escape sequences for those characters; UTF-8 output is decoded across USB
+packets. Firmware and device behavior can differ.
+
 **Save project** saves the ROM, current 2 MiB simulated flash, and original
 firmware flash in one `.pico` file in My files. It saves to browser storage
 first; the existing account service synchronizes that file to the server.
@@ -32,8 +41,9 @@ the QSPI and GPIO findings in the MIT-licensed upstream rp2040js proposals
 ## Tests and build
 
 From this folder, run `npm ci --ignore-scripts` and `npm test`. This checks
-UF2 and project validation, actual RP2040 instruction execution, and flash
-register programming and erase. `examples/blink.S` is the Blink source;
+UF2 and project validation, actual RP2040 instruction execution, flash
+register programming and erase, and all-or-nothing serial buffer admission.
+`examples/blink.S` is the Blink source;
 `examples/blink.mjs` contains the matching 44 machine-code bytes.
 
 `test-micropython.mjs` is a separate real-firmware test. Supply a private
@@ -72,4 +82,4 @@ exact binary/source match, applicable GPLv2 terms, corresponding source,
 notices and reproducible distribution have been reviewed. The MIT-licensed
 rp2040js and Wokwi Elements dependency licenses are included by the app builder.
 
-Local real-firmware account tests checked invalid-project recovery, close warnings, competing saves, and reopening through Files in a fresh phone-sized session. The live test uses only the bundled Blink example; private ROM and firmware test fixtures are not uploaded to the live site. Physical touch and arbitrary firmware compatibility remain unverified.
+Local real-firmware account tests checked both ROM/UF2 loading orders, serial commands, Ctrl+C and Ctrl+D, rejected overlong input, invalid-project recovery, close warnings, competing saves, and reopening through Files in a fresh phone-sized session. The live test uses only the bundled Blink example; private ROM and firmware test fixtures are not uploaded to the live site. Physical touch and arbitrary firmware compatibility remain unverified.

@@ -1,2 +1,3 @@
 .pico-simulator{display:flex;flex-direction:column;gap:12px;overflow:auto;padding:12px}.pico-toolbar{display:flex;flex-wrap:wrap;gap:6px}.pico-toolbar button{min-height:40px}.pico-stage{display:flex;align-items:center;gap:18px;min-height:110px}.pico-stage wokwi-led{width:50px}.pico-note,.pico-status{margin:0}
 .pico-serial{min-height:110px;max-height:220px;overflow:auto;background:#151d29;color:#e7eef9;padding:8px;white-space:pre-wrap;overflow-wrap:anywhere}.pico-simulator h3{margin:0}.pico-toolbar input{flex:1 1 180px;min-width:0}
+.pico-toolbar input{min-height:40px}@media(max-width:600px){.pico-toolbar button,.pico-toolbar input{min-height:44px}}

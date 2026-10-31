@@ -2,13 +2,14 @@ import { Simulator, GPIOPinState, USBCDC, ConsoleLogger, LogLevel } from 'rp2040
 import { blink } from './examples/blink.mjs';
 import { attachFlashSSI } from './flash-ssi.mjs';
 import { ROM_SIZE, FLASH_SIZE } from './project.mjs';
+import { queueSerial } from './serial.mjs';
 
 let simulator = null, cdc = null, bridge = null;
 function stop() { simulator?.stop(); bridge?.dispose(); bridge = null; simulator = null; cdc = null; }
 onmessage = event => {
   try {
     if (event.data?.type === 'stop') { stop(); postMessage({ type: 'stopped' }); return; }
-    if (event.data?.type === 'serial') { if (cdc) for (const char of event.data.text.slice(0, 1024)) cdc.sendSerialByte(char.charCodeAt(0) & 255); return; }
+    if (event.data?.type === 'serial') { const {bytes,id}=event.data,reason=queueSerial(cdc,bytes);postMessage({type:'serial-queued',id,accepted:!reason,reason});return; }
     if (event.data?.type === 'snapshot') { if (simulator && bridge) { const bytes = simulator.rp2040.flash.slice(0, FLASH_SIZE); postMessage({ type: 'snapshot', id: event.data.id, bytes: bytes.buffer }, [bytes.buffer]); } return; }
     if (!['blink', 'firmware'].includes(event.data?.type)) return;
     stop();
@@ -25,7 +26,7 @@ onmessage = event => {
       pico.loadBootrom(words); pico.flash.set(flash); bridge = attachFlashSSI(pico, () => postMessage({ type: 'flash-changed' }));
       cdc = new USBCDC(pico.usbCtrl);
       cdc.onDeviceConnected = () => { cdc?.sendSerialByte(13); cdc?.sendSerialByte(10); };
-      cdc.onSerialData = data => postMessage({ type: 'serial', text: new TextDecoder().decode(data) });
+      const decoder=new TextDecoder();cdc.onSerialData = data => postMessage({ type: 'serial', text: decoder.decode(data,{stream:true}) });
       pico.core.PC = 0x10000000;
     }
     postMessage({ type: 'started' });
