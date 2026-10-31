@@ -17,7 +17,7 @@ input remains in the field if the device is not ready or its USB buffer is
 full. A queued command may not have been consumed by the firmware yet. The
 tested MicroPython 1.20 interactive REPL dropped non-ASCII input, so use Python
 escape sequences for those characters; UTF-8 output is decoded across USB
-packets. Firmware and device behavior can differ.
+packets. Firmware and device behavior can differ. **Save serial output** writes the visible decoded text to a `.txt` file in My files, where Text can reopen it. The monitor keeps a maximum of 65,536 UTF-16 code units and warns when older output is trimmed; running or restarting a board clears it. This is a visible text snapshot, not a complete raw-byte or timestamped log.
 
 **Save project** saves the ROM, current 2 MiB simulated flash, and original
 firmware flash in one `.pico` file in My files. It saves to browser storage
