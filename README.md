@@ -83,3 +83,5 @@ notices and reproducible distribution have been reviewed. The MIT-licensed
 rp2040js and Wokwi Elements dependency licenses are included by the app builder.
 
 Local real-firmware account tests checked both ROM/UF2 loading orders, serial commands, Ctrl+C and Ctrl+D, rejected overlong input, invalid-project recovery, close warnings, competing saves, and reopening through Files in a fresh phone-sized session. The live test uses only the bundled Blink example; private ROM and firmware test fixtures are not uploaded to the live site. Physical touch and arbitrary firmware compatibility remain unverified.
+
+The most recent open or board-control action wins over an earlier file read that is still in progress. Overwriting a project checks its version using file metadata before writing instead of reading the full existing project. `tests/pico-open-race.test.mjs` checks these paths with the real local account mirror, synthetic UF2/ROM bytes and a fake Pico worker; it also checks sync, stale-save refusal and window cleanup. This is a file-workflow test, not a firmware-emulation test.
