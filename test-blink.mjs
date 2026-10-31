@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import { Simulator, GPIOPinState } from 'rp2040js';
+import { blink } from './examples/blink.mjs';
+const sim = new Simulator(), pico = sim.rp2040;
+const states = [];
+pico.gpio[25].addListener(state => states.push(state));
+pico.sram.set(blink); pico.core.PC = 0x20000000;
+for (let i = 0; i < 800000; i++) pico.core.executeInstruction();
+assert.ok(states.includes(GPIOPinState.High), 'GPIO25 became high');
+assert.ok(states.includes(GPIOPinState.Low), 'GPIO25 became low');
+console.log('RP2040 machine code drives Pico GPIO25 high and low: PASS');

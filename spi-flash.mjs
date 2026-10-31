@@ -10,6 +10,7 @@ export class SpiFlash {
     if(this.command===null){this.command=value;return 255;}
     switch(this.command){
       case 0x05:return this.enabled?2:0; // status register: WEL, no simulated busy time
+      case 0x35:return 2; // quad-enable appears set, as in the upstream SSI proposal
       case 0x9f:return [0xef,0x40,0x15][this.index++]??255;
       case 0x03:case 0x02:case 0x20:case 0xd8:
         if(this.addressBytes<3){this.address=(this.address<<8)|value;this.addressBytes++;return 255;}
@@ -23,6 +24,7 @@ export class SpiFlash {
     if(!this.active)throw Error('No active SPI transaction');this.active=false;
     if(this.command===0x06){this.enabled=true;return;}
     if(this.command===0x04){this.enabled=false;return;}
+    if(this.command===0x01){this.enabled=false;return;} // status writes accepted but not modeled
     if(!this.enabled)return;
     let changed=false;
     if(this.command===0x02&&this.addressBytes===3&&this.pending.length){

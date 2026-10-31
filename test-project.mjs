@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import { FLASH_SIZE, ROM_SIZE, parseUF2, encodeProject, decodeProject } from './project.mjs';
+const block = new Uint8Array(512), view = new DataView(block.buffer);
+for (const [offset, value] of [[0,0x0a324655],[4,0x9e5d5157],[8,0x2000],[12,0x10000000],[16,4],[28,0xe48bff56],[508,0x0ab16f30]]) view.setUint32(offset,value,true);
+block.set([1,2,3,4],32);
+const flash = parseUF2(block);
+assert.deepEqual([...flash.slice(0,4)],[1,2,3,4]);
+assert.equal(flash[4],255);
+view.setUint32(28,0,true);
+assert.throws(()=>parseUF2(block),/not for the RP2040/);
+assert.throws(()=>parseUF2(block.slice(0,511)),/length/);
+const rom = new Uint8Array(ROM_SIZE).fill(9), original = new Uint8Array(FLASH_SIZE).fill(255);
+const project = encodeProject(rom,flash,original), restored = decodeProject(project);
+assert.deepEqual(restored.rom,rom); assert.deepEqual(restored.flash,flash); assert.deepEqual(restored.baseline,original);
+project[0] = 0;
+assert.throws(()=>decodeProject(project),/Not a supported Pico project/);
+console.log('Pico project round-trip and UF2 validation: PASS');
