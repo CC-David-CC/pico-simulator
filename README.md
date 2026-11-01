@@ -2,7 +2,7 @@
 
 This separate app runs RP2040 machine code locally in a worker. **Run Blink**
 needs no ROM and displays GPIO 25 through a Wokwi LED. Each window owns its
-board and worker; closing it stops the worker.
+board and worker; closing it stops the worker. The short Blink exercise appears above the board. The LED has an on/off text label, and Blink timing is not a physical timing measurement. The example cannot be saved as a project; projects require a ROM and firmware.
 
 For MicroPython, first put your own 16 KiB RP2040 B1 ROM binary and Pico UF2
 firmware in My files. Choose **Open ROM**, then **Open UF2**. The app executes

@@ -8,7 +8,9 @@ export function mount(host) {
   const toolbar = make('div', 'pico-toolbar'), status = make('p', 'pico-status', 'Ready to run the Blink example.'), fileWarning=make('p','pico-file-warning');fileWarning.hidden=true;fileWarning.setAttribute('role','status');const failureWarning=make('p','pico-failure-warning','The firmware stopped unexpectedly. Unsaved flash changes may be lost. Reopen a project, load a UF2, or reset flash before running or saving firmware.');failureWarning.hidden=true;failureWarning.setAttribute('role','status');
   const stage = make('div', 'pico-stage'), led = document.createElement('wokwi-led');
   led.color = 'green'; led.label = 'GPIO 25'; led.value = false;
-  stage.append(led, make('span', '', 'Pico onboard LED (GPIO 25)'));
+  const ledLabel=make('span','pico-led-state','Pico onboard LED (GPIO 25): off');
+  stage.append(led, ledLabel);
+  function showLed(on){led.value=!!on;ledLabel.textContent='Pico onboard LED (GPIO 25): '+(on?'on':'off');}
   const serial = make('pre', 'pico-serial'); serial.setAttribute('aria-label', 'Pico serial output');serial.tabIndex=0;const serialInfo=make('p','pico-note','Serial monitor keeps the most recent 65,536 UTF-16 code units.'),serialWarning=make('p','pico-file-warning pico-serial-warning');serialWarning.hidden=true;serialWarning.setAttribute('role','status');
   const input = document.createElement('input'); input.type = 'text'; input.placeholder = 'Serial command'; input.setAttribute('aria-label', 'Pico serial command');input.setAttribute('autocapitalize','off');input.setAttribute('autocorrect','off');input.spellcheck=false;
   const path = document.createElement('input'); path.value = '/Pico-' + crypto.randomUUID() + '.pico'; path.setAttribute('aria-label', 'Pico project path');
@@ -26,7 +28,7 @@ export function mount(host) {
   function watch(c,p){clearWatch();const serial=watchSerial;const check=async()=>{const expected=version,checkId=++checkSerial;if(!valid()||!c.valid()||!expected||savedPath!==p)return;let message='';try{const file=await c.files.stat(p);if(file.status==='conflict')message='This project has conflicting copies. The current board remains open; resolve them in Files.';else if(file.version!==expected)message='The saved project changed. The current board remains open; save a copy or reopen it.';}catch{message='The saved project is unavailable. The current board remains open.';}if(valid()&&c.valid()&&serial===watchSerial&&checkId===checkSerial&&savedPath===p&&version===expected){fileWarning.textContent=message;fileWarning.hidden=!message;}};unwatch=c.files.subscribe(check);queueMicrotask(check);}
   function clearOutputWatch(){outputWatchSerial++;outputCheckSerial++;unwatchOutput();unwatchOutput=()=>{};serialWarning.textContent='';serialWarning.hidden=true;}
   function watchOutput(c,p,expected){clearOutputWatch();const serial=outputWatchSerial;const check=async()=>{const id=++outputCheckSerial;if(!valid()||!c.valid())return;let message='';try{const f=await c.files.stat(p);if(f.status==='conflict')message='The saved serial output has conflicting copies. Resolve them in Files.';else if(f.version!==expected)message='The saved serial output changed. Save a copy if you need the current monitor.';}catch{message='The saved serial output is unavailable. The current monitor remains open.';}if(valid()&&c.valid()&&serial===outputWatchSerial&&id===outputCheckSerial){serialWarning.textContent=message;serialWarning.hidden=!message;}};unwatchOutput=c.files.subscribe(check);queueMicrotask(check);}
-  function stop() { generation++; worker?.terminate(); worker = null; bridgeMode = false; serialPending=null; led.value = false; for (const p of pending.values()) { clearTimeout(p.timer); p.reject(Error('Board stopped.')); } pending.clear(); }
+  function stop() { generation++; worker?.terminate(); worker = null; bridgeMode = false; serialPending=null; showLed(false); for (const p of pending.values()) { clearTimeout(p.timer); p.reject(Error('Board stopped.')); } pending.clear(); }
   function recoverFlash(){flashUncertain=false;failureWarning.hidden=true;}
   function workerFailed(mode,message){if(mode==='firmware'){flashUncertain=true;failureWarning.hidden=false;}stop();tell(message);}
   function start(mode) {
@@ -35,7 +37,7 @@ export function mount(host) {
     worker.onmessage = event => {
       if (!valid() || current !== generation) return;
       const m = event.data;
-      if (m.type === 'led') led.value = m.on;
+      if (m.type === 'led') showLed(m.on);
       else if (m.type === 'started') tell(mode === 'firmware' ? 'Running firmware locally. Save the project to keep flash changes.' : 'Running the Blink example locally.');
       else if (m.type === 'serial') { const text=serial.textContent+m.text;if(text.length>65536){let tail=text.slice(-65536);const first=tail.charCodeAt(0);if(first>=0xdc00&&first<=0xdfff)tail=tail.slice(1);serial.textContent=tail;serialInfo.textContent='Earlier serial output was trimmed; only the most recent output can be saved.';}else serial.textContent=text;if(followSerial)serial.scrollTop = serial.scrollHeight; }
       else if (m.type === 'flash-changed') { changed = true; changeSerial++; }
@@ -77,7 +79,9 @@ export function mount(host) {
   const serialLatest=textButton('Jump to latest',()=>{followSerial=true;serialLatest.disabled=true;serial.scrollTop=serial.scrollHeight;});serialLatest.disabled=true;serial.addEventListener('scroll',()=>{followSerial=serial.scrollHeight-serial.clientHeight-serial.scrollTop<=8;serialLatest.disabled=followSerial;},{signal:host.signal});
   const serialbar = make('div', 'pico-toolbar'); serialbar.append(input, textButton('Send', send),textButton('Ctrl+C',()=>sendBytes(new Uint8Array([3]))),textButton('Ctrl+D',()=>sendBytes(new Uint8Array([4]))),serialLatest,textButton('Save serial output',saveSerial));
   const serialDetails=document.createElement('details'),serialLocation=make('div','pico-toolbar');serialDetails.append(make('summary','','Serial output save location'),serialLocation);serialLocation.append(serialPath,textButton('Choose serial output folder',serialFolder));
-  const serialNote=make('p','pico-note','Serial text uses UTF-8; firmware may accept only ASCII. Queued input may not have been read yet.');body.append(toolbar, note, failureWarning, stage, savebar,fileWarning, make('h3', '', 'Serial console'),serialInfo,serialWarning, serial, serialbar, serialDetails,serialNote, status);
+  const serialNote=make('p','pico-note','Serial text uses UTF-8; firmware may accept only ASCII. Queued input may not have been read yet.');
+  const lesson=make('p','pico-note pico-lesson','Try the example: select Run Blink, watch the onboard LED and its on/off label change, then select Stop. This runs RP2040 instructions in a simulated board; its blinking speed is not a physical timing measurement. Blink needs no ROM and cannot be saved as a project.');
+  body.append(toolbar, note, lesson, failureWarning, stage, savebar,fileWarning, make('h3', '', 'Serial console'),serialInfo,serialWarning, serial, serialbar, serialDetails,serialNote, status);
   if(w.launchContext?.storage==='mirror'&&w.launchContext.owner===owner)queueMicrotask(()=>openProject(w.launchContext.path,{initialLoad:true}));
   return { element: body, dispose() { disposed = true;clearWatch();clearOutputWatch(); openEpoch++;delete state.hasChanges; stop(); } };
 }
