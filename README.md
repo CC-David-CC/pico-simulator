@@ -117,3 +117,8 @@ The local pending-save candidate asks before closing while a project or serial
 snapshot save is in progress. Desktop, emulated-phone and 4K checks used real
 account storage and simulated board data; a separate phone-sized Blink check
 used the real worker. An already-dispatched write may still finish after close.
+
+UF2 blocks that write different bytes to the same flash address are rejected
+without replacing the running board; identical overlapping bytes are accepted.
+This prevents file order from silently changing the firmware image. This check
+does not establish firmware completeness or hardware compatibility.
