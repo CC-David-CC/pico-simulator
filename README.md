@@ -141,3 +141,9 @@ cleared and the original file is left unchanged. Local desktop and emulated-phon
 project-switch/recovery tests use synthetic ROM and flash with a fake worker;
 a separate phone-sized test runs the real Blink worker. These checks do not
 validate physical hardware or arbitrary firmware.
+
+If a restored project encounters a storage conflict, temporary read failure or
+an invalid account context, its desktop reference is retained for recovery.
+A confirmed missing or invalid project still clears the stale reference without
+changing the file. Local account tests inject these failures; they do not
+establish behavior for every outage or firmware image.
