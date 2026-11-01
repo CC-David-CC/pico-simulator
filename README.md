@@ -162,3 +162,13 @@ until it closes. Local registered-account desktop and emulated-phone tests
 cover changed filenames and board state, serial save/sync and window cleanup;
 the test uses simulated worker messages and does not validate real firmware or
 physical touch.
+
+**Stop** pauses the simulated firmware worker before capturing flash. This
+prevents instructions running between a snapshot and worker termination from
+silently writing changes that are not captured. If the worker cannot confirm
+that snapshot, the app warns that unsaved flash may be lost and blocks saving
+its stale copy until recovery. Local browser tests exercised real RP2040 Blink
+instructions to verify normal snapshots leave execution running and a stop
+snapshot halts it; desktop and emulated-phone account tests used a controlled
+worker to exercise late replacement, missing acknowledgement, sync and reopen.
+This does not establish arbitrary firmware or physical-board behavior.

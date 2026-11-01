@@ -10,7 +10,7 @@ onmessage = event => {
   try {
     if (event.data?.type === 'stop') { stop(); postMessage({ type: 'stopped' }); return; }
     if (event.data?.type === 'serial') { const {bytes,id}=event.data,reason=queueSerial(cdc,bytes);postMessage({type:'serial-queued',id,accepted:!reason,reason});return; }
-    if (event.data?.type === 'snapshot') { if (simulator && bridge) { const bytes = simulator.rp2040.flash.slice(0, FLASH_SIZE); postMessage({ type: 'snapshot', id: event.data.id, bytes: bytes.buffer }, [bytes.buffer]); } return; }
+    if (event.data?.type === 'snapshot' || event.data?.type === 'halt-snapshot') { if (simulator && bridge) { if(event.data.type==='halt-snapshot')simulator.stop(); const bytes = simulator.rp2040.flash.slice(0, FLASH_SIZE); postMessage({ type: 'snapshot', id: event.data.id, bytes: bytes.buffer }, [bytes.buffer]); } return; }
     if (!['blink', 'firmware'].includes(event.data?.type)) return;
     stop();
     const sim = new Simulator(); simulator = sim;
