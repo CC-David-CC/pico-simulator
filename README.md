@@ -144,6 +144,13 @@ validate physical hardware or arbitrary firmware.
 
 If a restored project encounters a storage conflict, temporary read failure or
 an invalid account context, its desktop reference is retained for recovery.
+**Retry saved project** retries that reference without selecting it again; an
+active board still requires confirmation before replacement. If the suggested
+save path collides with the unresolved project, a separate recovery name is
+used. Local desktop and emulated-phone account tests ran MicroPython 1.20 in
+the actual RP2040 worker, wrote a simulated-flash file, saved and synchronized
+the project, injected a temporary restore failure in a fresh browser, retried,
+and read the file back. The private test firmware and ROM were not bundled.
 A confirmed missing or invalid project still clears the stale reference without
 changing the file. Local account tests inject these failures; they do not
 establish behavior for every outage or firmware image.
