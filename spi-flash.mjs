@@ -15,7 +15,7 @@ export class SpiFlash {
       case 0x03:case 0x02:case 0x20:case 0xd8:
         if(this.addressBytes<3){this.address=(this.address<<8)|value;this.addressBytes++;return 255;}
         if(this.command===0x03){const result=this.bytes[this.address%this.bytes.length];this.address=(this.address+1)&0xffffff;return result;}
-        if(this.command===0x02&&this.pending.length<256)this.pending.push(value);
+        if(this.command===0x02)this.pending[this.index++ & 255]=value;
         return 255;
       default:return 255;
     }

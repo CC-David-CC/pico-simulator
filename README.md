@@ -147,3 +147,10 @@ an invalid account context, its desktop reference is retained for recovery.
 A confirmed missing or invalid project still clears the stale reference without
 changing the file. Local account tests inject these failures; they do not
 establish behavior for every outage or firmware image.
+
+For supported SPI page-program commands, data beyond 256 bytes wraps within
+that page and replaces earlier buffered bytes, matching the W25Q16 page-program
+behavior. Programming still only clears bits until an erase. Register-level
+and flash-model tests cover wraparound; the bridge remains a partial SPI/QSPI
+approximation and is not a complete Pico hardware model. See the
+[W25Q16DV datasheet](https://content.arduino.cc/assets/Winbond_w25q16dv.pdf).
