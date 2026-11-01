@@ -19,6 +19,10 @@ tested MicroPython 1.20 interactive REPL dropped non-ASCII input, so use Python
 escape sequences for those characters; UTF-8 output is decoded across USB
 packets. Firmware and device behavior can differ. **Save serial output** writes the visible decoded text to a `.txt` file in My files, where Text can reopen it. The monitor keeps a maximum of 65,536 UTF-16 code units and warns when older output is trimmed; running or restarting a board clears it. This is a visible text snapshot, not a complete raw-byte or timestamped log.
 
+UF2 file containers are rejected rather than interpreted as flash firmware;
+the current simulated board remains open. Ordinary non-flash metadata blocks
+in a firmware UF2 continue to be ignored.
+
 Enter used to finish an input-method composition is left to the keyboard; it
 does not send the serial command. Press Enter again after composition finishes
 or select **Send**. The app still cannot guarantee that a particular firmware

@@ -10,6 +10,9 @@ export function parseUF2(data) {
   for (let pos = 0; pos < bytes.length; pos += 512) {
     if (view.getUint32(pos, true) !== 0x0a324655 || view.getUint32(pos + 4, true) !== 0x9e5d5157 || view.getUint32(pos + 508, true) !== 0x0ab16f30) throw Error('Invalid UF2 block.');
     const flags = view.getUint32(pos + 8, true);
+    // Container addresses are file offsets, not firmware flash addresses.
+    // The container flag takes precedence over the ordinary metadata flag.
+    if (flags & 0x1000) throw Error('UF2 file containers are not supported as Pico firmware.');
     if (flags & 1) continue; // UF2 metadata, not flash content
     if ((flags & 0x2000) && view.getUint32(pos + 28, true) !== 0xe48bff56) throw Error('This UF2 is not for the RP2040.');
     const addr = view.getUint32(pos + 12, true), size = view.getUint32(pos + 16, true);
