@@ -47,6 +47,12 @@ the QSPI and GPIO findings in the MIT-licensed upstream rp2040js proposals
 `d18c7cde940adf58e5384b8bb780519c4832525c`. The app uses the pinned released
 `rp2040js` dependency and its own partial bridge, not the unmerged fork.
 
+If a firmware worker fails unexpectedly, its latest flash changes may be lost.
+The app warns and blocks saving or restarting the stale in-memory snapshot.
+Reopen a saved project, load a UF2, or confirm Reset flash to recover. Reset
+uses the original firmware image, not the last saved flash. This warning does
+not imply that unsaved changes were recovered.
+
 ## Tests and build
 
 From this folder, run `npm ci --ignore-scripts` and `npm test`. This checks
