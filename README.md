@@ -154,3 +154,11 @@ behavior. Programming still only clears bits until an erase. Register-level
 and flash-model tests cover wraparound; the bridge remains a partial SPI/QSPI
 approximation and is not a complete Pico hardware model. See the
 [W25Q16DV datasheet](https://content.arduino.cc/assets/Winbond_w25q16dv.pdf).
+
+The project and serial-output folder choosers reject late selections if the
+filename, selected project, pending open operation or board changes while the
+chooser is open. Only one folder chooser is active at a time, and saving waits
+until it closes. Local registered-account desktop and emulated-phone tests
+cover changed filenames and board state, serial save/sync and window cleanup;
+the test uses simulated worker messages and does not validate real firmware or
+physical touch.
