@@ -91,3 +91,15 @@ Project saves capture their destination before requesting the flash snapshot. A 
 After a serial-output save, a separate notice reports if synchronization finds that the saved text changed, was removed, or has conflicting copies; resolve conflicts in Files. An immediate conflict is reported in the save status. **Run Blink** clears the previous project association, so restoring the window does not reopen an unrelated saved project. Local desktop, emulated-phone and 4K and live emulated-phone tests used simulated serial messages to check an actual two-session file conflict, the visible notice, recovery and layout association. A separate live and local phone-sized test ran the real Blink worker; physical touch and arbitrary firmware remain unverified.
 
 Board replacement, simulated-flash reset, project overwrite and serial-output overwrite use desktop confirmations. Cancelling leaves the current board or saved file intact. If the board changes while a replacement confirmation is open, the action stops; if the file changes while an overwrite confirmation is open, it is not overwritten. These checks describe the simulated board and do not validate physical hardware.
+
+The local serial-monitor candidate follows new output until the user scrolls up;
+incoming text then leaves the scroll position alone. **Jump to latest** resumes
+following, and scrolling to the bottom also resumes it. Restarting a board
+clears the monitor and follows again. The most-recent-output limit still applies,
+so old text can be removed from the buffer while it is being read. Local
+desktop, emulated-phone and 4K tests use simulated serial packets with real
+account storage; they exercise mouse-wheel, keyboard or emulated-touch scrolling, resume,
+snapshot synchronization and worker cleanup. A separate phone-sized test ran
+the actual bundled Blink worker; physical touch and real-firmware serial behavior
+were not tested for this change. The previous monitor jumped to the bottom in
+a negative-control test. This candidate has not been deployed.
