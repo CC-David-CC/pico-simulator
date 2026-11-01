@@ -134,3 +134,10 @@ exactly once with a consistent total; order does not matter. Files whose
 blocks all omit the total remain accepted for compatibility, but their
 completeness cannot be checked this way. These checks do not verify firmware
 functionality or all corruption.
+
+The desktop restores the most recently opened or saved `.pico` project after a
+refresh. If the initial project is missing or invalid, the stale association is
+cleared and the original file is left unchanged. Local desktop and emulated-phone
+project-switch/recovery tests use synthetic ROM and flash with a fake worker;
+a separate phone-sized test runs the real Blink worker. These checks do not
+validate physical hardware or arbitrary firmware.
