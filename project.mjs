@@ -6,9 +6,16 @@ export function parseUF2(data) {
   const bytes = new Uint8Array(data), view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   if (!bytes.length || bytes.length > 8 * 1024 * 1024 || bytes.length % 512) throw Error('Invalid UF2 file length.');
   const flash = new Uint8Array(FLASH_SIZE).fill(255), written = new Uint8Array(FLASH_SIZE);
-  let blocks = 0;
+  let blocks = 0, declaredBlocks = null, unnumbered = false;
+  const seenBlocks = new Set();
   for (let pos = 0; pos < bytes.length; pos += 512) {
     if (view.getUint32(pos, true) !== 0x0a324655 || view.getUint32(pos + 4, true) !== 0x9e5d5157 || view.getUint32(pos + 508, true) !== 0x0ab16f30) throw Error('Invalid UF2 block.');
+    const number = view.getUint32(pos + 20, true), total = view.getUint32(pos + 24, true);
+    if (total === 0) unnumbered = true;
+    else {
+      if (total > bytes.length / 512 || number >= total || (declaredBlocks !== null && declaredBlocks !== total) || seenBlocks.has(number)) throw Error('Invalid or incomplete UF2 block numbering.');
+      declaredBlocks = total; seenBlocks.add(number);
+    }
     const flags = view.getUint32(pos + 8, true);
     // Container addresses are file offsets, not firmware flash addresses.
     // The container flag takes precedence over the ordinary metadata flag.
@@ -25,6 +32,7 @@ export function parseUF2(data) {
     }
     blocks++;
   }
+  if (declaredBlocks !== null && (unnumbered || seenBlocks.size !== declaredBlocks)) throw Error('Invalid or incomplete UF2 block numbering.');
   if (!blocks) throw Error('UF2 contains no flash data.');
   return flash;
 }

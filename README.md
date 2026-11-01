@@ -122,3 +122,9 @@ UF2 blocks that write different bytes to the same flash address are rejected
 without replacing the running board; identical overlapping bytes are accepted.
 This prevents file order from silently changing the firmware image. This check
 does not establish firmware completeness or hardware compatibility.
+
+When UF2 blocks declare a nonzero total, all numbered blocks must be present
+exactly once with a consistent total; order does not matter. Files whose
+blocks all omit the total remain accepted for compatibility, but their
+completeness cannot be checked this way. These checks do not verify firmware
+functionality or all corruption.
