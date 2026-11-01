@@ -17,7 +17,7 @@ export function mount(host) {
   const openSerial={rom:0,firmware:0,project:0};
   function beginOpen(kind){if(kind==='project'){openSerial.rom++;openSerial.firmware++;}else openSerial.project++;return {kind,serial:++openSerial[kind],epoch:openEpoch};}
   const currentOpen=token=>token.epoch===openEpoch&&token.serial===openSerial[token.kind];
-  w.ownerSub=owner;state.hasChanges=()=>changed||bridgeMode;
+  w.ownerSub=owner;state.hasChanges=()=>changed||bridgeMode||saving;
   const pending = new Map();
   const valid = () => !disposed && !host.signal.aborted && owner === signedInSubject();
   const tell = value => { if (valid()) status.textContent = value; };

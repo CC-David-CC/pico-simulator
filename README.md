@@ -107,4 +107,9 @@ account storage; they exercise mouse-wheel, keyboard or emulated-touch scrolling
 snapshot synchronization and worker cleanup. A separate phone-sized test ran
 the actual bundled Blink worker; physical touch and real-firmware serial behavior
 were not tested for this change. The previous monitor jumped to the bottom in
-a negative-control test. This candidate has not been deployed.
+a negative-control test. A public phone-sized check also passed.
+
+The local pending-save candidate asks before closing while a project or serial
+snapshot save is in progress. Desktop, emulated-phone and 4K checks used real
+account storage and simulated board data; a separate phone-sized Blink check
+used the real worker. An already-dispatched write may still finish after close.
