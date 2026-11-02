@@ -179,3 +179,12 @@ instructions to verify normal snapshots leave execution running and a stop
 snapshot halts it; desktop and emulated-phone account tests used a controlled
 worker to exercise late replacement, missing acknowledgement, sync and reopen.
 This does not establish arbitrary firmware or physical-board behavior.
+
+## Browser commands
+
+The signed-in desktop's in-page command registry provides `inspect` for the
+board's mode, simulated LED and flash status, and `read-serial` for bounded
+retained serial output. Firmware replacement, serial input and flash operations
+remain in the normal interface; the commands do not bypass confirmations or
+provide remote agent access. Blink does not have a saved firmware project, and
+the simulated board is not a physical timing or electrical validation.
