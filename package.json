@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "RP2040 simulator and SPI flash integration in development",
   "scripts": {
-    "test": "node test-flash-ssi.mjs && node test-blink.mjs && node test-project.mjs && node test-serial.mjs"
+    "test": "node test-flash-ssi.mjs && node test-blink.mjs && node test-project.mjs && node test-serial.mjs",
+    "test:reference": "node --test --test-reporter=tap tests/reference/*.test.mjs"
   },
   "license": "UNLICENSED",
   "type": "commonjs",

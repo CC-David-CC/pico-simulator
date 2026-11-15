@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {SpiFlash} from '../apps/system/pico-simulator/spi-flash.mjs';
+import {SpiFlash} from "../../spi-flash.mjs";
 let writes=0;const f=new SpiFlash(undefined,()=>writes++);
 function tx(...bytes){f.begin();const out=bytes.map(b=>f.transfer(b));f.end();return out;}
 tx(0x02,0,0,0,0x12);assert.equal(f.bytes[0],255,'programming requires write-enable');
