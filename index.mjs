@@ -1,4 +1,3 @@
-import '@wokwi/elements/dist/esm/led-element.js';
 import './style.css';
 import { parseUF2, encodeProject, decodeProject, ROM_SIZE } from './project.mjs';
 
@@ -6,11 +5,11 @@ export function mount(host) {
   const { w } = host, { make, textButton } = host.ui, { mirrorFileContext, signedInSubject } = host.storage;
   const owner = signedInSubject(), state=w.picoSimulator??={path:null,version:null}, body = make('div', 'window-content pico-simulator');
   const toolbar = make('div', 'pico-toolbar'), status = make('p', 'pico-status', 'Ready to run the Blink example.'), fileWarning=make('p','pico-file-warning');fileWarning.hidden=true;fileWarning.setAttribute('role','status');const failureWarning=make('p','pico-failure-warning','The firmware stopped unexpectedly. Unsaved flash changes may be lost. Reopen a project, load a UF2, or reset flash before running or saving firmware.');failureWarning.hidden=true;failureWarning.setAttribute('role','status');
-  const stage = make('div', 'pico-stage'), led = document.createElement('wokwi-led');
-  led.color = 'green'; led.label = 'GPIO 25'; led.value = false;
+  const stage = make('div', 'pico-stage'), led = make('span', 'pico-led');
+  led.setAttribute('aria-hidden', 'true');
   const ledLabel=make('span','pico-led-state','Pico onboard LED (GPIO 25): off');
   stage.append(led, ledLabel);
-  function showLed(on){led.value=!!on;ledLabel.textContent='Pico onboard LED (GPIO 25): '+(on?'on':'off');}
+  function showLed(on){led.classList.toggle('is-lit', !!on);ledLabel.textContent='Pico onboard LED (GPIO 25): '+(on?'on':'off');}
   const serial = make('pre', 'pico-serial'); serial.setAttribute('aria-label', 'Pico serial output');serial.tabIndex=0;const serialInfo=make('p','pico-note','Serial monitor keeps the most recent 65,536 UTF-16 code units.'),serialWarning=make('p','pico-file-warning pico-serial-warning');serialWarning.hidden=true;serialWarning.setAttribute('role','status');
   const input = document.createElement('input'); input.type = 'text'; input.placeholder = 'Serial command'; input.setAttribute('aria-label', 'Pico serial command');input.setAttribute('autocapitalize','off');input.setAttribute('autocorrect','off');input.spellcheck=false;
   const path = document.createElement('input'); path.value = '/Pico-' + crypto.randomUUID() + '.pico'; path.setAttribute('aria-label', 'Pico project path');

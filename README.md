@@ -1,7 +1,7 @@
 # Pico Simulator — experimental
 
 This separate app runs RP2040 machine code locally in a worker. **Run Blink**
-needs no ROM and displays GPIO 25 through a Wokwi LED. Each window owns its
+needs no ROM and displays GPIO 25 through an LED indicator. Each window owns its
 board and worker; closing it stops the worker. The short Blink exercise appears above the board. The LED has an on/off text label, and Blink timing is not a physical timing measurement. The example cannot be saved as a project; projects require a ROM and firmware.
 
 For MicroPython, first put your own 16 KiB RP2040 B1 ROM binary and Pico UF2
@@ -95,7 +95,7 @@ excludes its floating-point library from the rest of the ROM's BSD terms.
 offers a physical-RP2040-only license or GPLv2. Do not bundle a ROM until its
 exact binary/source match, applicable GPLv2 terms, corresponding source,
 notices and reproducible distribution have been reviewed. The MIT-licensed
-rp2040js and Wokwi Elements dependency licenses are included by the app builder.
+rp2040js dependency license is included by the app builder.
 
 Local real-firmware account tests checked both ROM/UF2 loading orders, serial commands, Ctrl+C and Ctrl+D, rejected overlong input, invalid-project recovery, close warnings, competing saves, and reopening through Files in a fresh phone-sized session. The live test uses only the bundled Blink example; private ROM and firmware test fixtures are not uploaded to the live site. Physical touch and arbitrary firmware compatibility remain unverified.
 
