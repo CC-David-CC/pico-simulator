@@ -1,5 +1,7 @@
 # Pico Simulator — experimental
 
+[Galaxy S10+ walkthrough and WebOS files verification](docs/webos-qa/PHONE.md)
+
 This separate app runs RP2040 machine code locally in a worker. **Run Blink**
 needs no ROM and displays GPIO 25 through an LED indicator. Each window owns its
 board and worker; closing it stops the worker. The short Blink exercise appears above the board. The LED has an on/off text label, and Blink timing is not a physical timing measurement. The example cannot be saved as a project; projects require a ROM and firmware.
