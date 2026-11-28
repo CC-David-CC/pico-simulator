@@ -1,4 +1,5 @@
 """Exercise the packaged RP2040 worker in an isolated WebOS desktop."""
+from time import monotonic
 from playwright.sync_api import expect
 
 
@@ -19,9 +20,12 @@ def replay(page, evidence):
         assert lit == (not high)
         states.append({'gp2': int(high), 'gp25': int(lit)})
         if len(states) in (2, 3):
-            board.screenshot(path=evidence / f'gp2-{int(high)}.png')
-    with started.value.expect_event('close'):
-        button('Stop').click()
+            board.locator('.pico-stage').screenshot(path=evidence / f'gp2-{int(high)}.png')
+    button('Stop').click()
+    deadline = monotonic() + 5
+    while started.value in page.workers and monotonic() < deadline:
+        page.wait_for_timeout(25)
+    assert started.value not in page.workers, 'Stop must terminate the GPIO firmware worker'
     expect(board.locator('.pico-status')).to_have_text('GPIO input example stopped.')
     expect(switch).to_be_disabled()
 

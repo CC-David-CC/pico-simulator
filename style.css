@@ -16,3 +16,5 @@
 
 .pico-stage { min-height: 56px; }
 .pico-file-warning,.pico-failure-warning{margin:0;padding:6px 8px;border-left:4px solid #a65300;background:#fff1d6;color:#4d2900}
+
+.pico-stage { color: var(--desktop-text, CanvasText); }
