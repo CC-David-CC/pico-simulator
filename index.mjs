@@ -21,19 +21,25 @@ export function mount(host) {
   const stage = make('div', 'pico-stage'), led = make('span', 'pico-led');
   led.setAttribute('aria-hidden', 'true');
   const ledLabel=make('span','pico-led-state','Pico onboard LED (GPIO 25): off');
-  stage.append(led, ledLabel);
+  const gp2 = document.createElement('input');
+  gp2.type = 'checkbox';
+  gp2.disabled = true;
+  const gp2Label = make('label', '', 'GPIO 2 input high');
+  gp2Label.prepend(gp2);
+  gp2.addEventListener('change', () => worker?.postMessage({type: 'input-gp2', high: gp2.checked}));
+  stage.append(led, ledLabel, gp2Label);
   function showLed(on){led.classList.toggle('is-lit', !!on);ledLabel.textContent='Pico onboard LED (GPIO 25): '+(on?'on':'off');}
   const serial = make('pre', 'pico-serial'); serial.setAttribute('aria-label', 'Pico serial output');serial.tabIndex=0;const serialInfo=make('p','pico-note','Serial monitor keeps the most recent 65,536 UTF-16 code units.'),serialWarning=make('p','pico-file-warning pico-serial-warning');serialWarning.hidden=true;serialWarning.setAttribute('role','status');
   const input = document.createElement('input'); input.type = 'text'; input.placeholder = 'Serial command'; input.setAttribute('aria-label', 'Pico serial command');input.setAttribute('autocapitalize','off');input.setAttribute('autocorrect','off');input.spellcheck=false;
   const defaultProject = '/Pico project.pico';
   const path = document.createElement('input'); path.value = defaultProject; path.setAttribute('aria-label', 'Pico project path');
   const note = make('p', 'pico-note', 'Open a 16 KiB RP2040 B1 ROM and Pico UF2 from My files to run firmware. Save a project to keep simulated flash changes.');
-  let worker = null, generation = 0, disposed = false, bridgeMode = false, rom = null, flash = null, baseline = null, version = null, savedPath = null, changed = false, flashUncertain = false, changeSerial = 0, saving = false, request = 0, serialRequest=0,serialPending=null,followSerial=true,openEpoch=0,unwatch=()=>{},watchSerial=0,checkSerial=0,unwatchOutput=()=>{},outputWatchSerial=0,outputCheckSerial=0;
+  let worker = null, generation = 0, disposed = false, boardMode = 'stopped', rom = null, flash = null, baseline = null, version = null, savedPath = null, changed = false, flashUncertain = false, changeSerial = 0, saving = false, request = 0, serialRequest=0,serialPending=null,followSerial=true,openEpoch=0,unwatch=()=>{},watchSerial=0,checkSerial=0,unwatchOutput=()=>{},outputWatchSerial=0,outputCheckSerial=0;
   let choosingFolder=false;
   const openSerial={rom:0,firmware:0,project:0};
   function beginOpen(kind){if(kind==='project'){openSerial.rom++;openSerial.firmware++;}else openSerial.project++;return {kind,serial:++openSerial[kind],epoch:openEpoch};}
   const currentOpen=token=>token.epoch===openEpoch&&token.serial===openSerial[token.kind];
-  w.ownerSub=owner;state.hasChanges=()=>changed||bridgeMode||saving||flashUncertain;
+  w.ownerSub=owner;state.hasChanges=()=>changed||boardMode === 'firmware'||saving||flashUncertain;
   const pending = new Map();
   const valid = () => !disposed && !host.signal.aborted && owner === workspaceOwner();
   const tell = value => { if (valid()) status.textContent = value; };
@@ -47,17 +53,17 @@ export function mount(host) {
   function watch(c,p){clearWatch();const serial=watchSerial;const check=async()=>{const expected=version,checkId=++checkSerial;if(!valid()||!c.valid()||!expected||savedPath!==p)return;let message='';try{const file=await c.files.stat(p);if(file.status==='conflict')message='This project has conflicting copies. The current board remains open; resolve them in Files.';else if(file.version!==expected)message='The saved project changed. The current board remains open; save a copy or reopen it.';}catch{message='The saved project is unavailable. The current board remains open.';}if(valid()&&c.valid()&&serial===watchSerial&&checkId===checkSerial&&savedPath===p&&version===expected){fileWarning.textContent=message;fileWarning.hidden=!message;}};unwatch=c.files.subscribe(check);queueMicrotask(check);}
   function clearOutputWatch(){outputWatchSerial++;outputCheckSerial++;unwatchOutput();unwatchOutput=()=>{};serialWarning.textContent='';serialWarning.hidden=true;}
   function watchOutput(c,p,expected){clearOutputWatch();const serial=outputWatchSerial;const check=async()=>{const id=++outputCheckSerial;if(!valid()||!c.valid())return;let message='';try{const f=await c.files.stat(p);if(f.status==='conflict')message='The saved serial output has conflicting copies. Resolve them in Files.';else if(f.version!==expected)message='The saved serial output changed. Save a copy if you need the current monitor.';}catch{message='The saved serial output is unavailable. The current monitor remains open.';}if(valid()&&c.valid()&&serial===outputWatchSerial&&id===outputCheckSerial){serialWarning.textContent=message;serialWarning.hidden=!message;}};unwatchOutput=c.files.subscribe(check);queueMicrotask(check);}
-  function stop() { generation++; worker?.terminate(); worker = null; bridgeMode = false; serialPending=null; showLed(false); for (const p of pending.values()) { clearTimeout(p.timer); p.reject(Error('Board stopped.')); } pending.clear(); }
+  function stop() { generation++; worker?.terminate(); worker = null; boardMode = 'stopped'; gp2.disabled = true; gp2.checked = false; serialPending=null; showLed(false); for (const p of pending.values()) { clearTimeout(p.timer); p.reject(Error('Board stopped.')); } pending.clear(); }
   function recoverFlash(){flashUncertain=false;failureWarning.hidden=true;}
   function workerFailed(mode,message){if(mode==='firmware'){flashUncertain=true;failureWarning.hidden=false;}stop();tell(message);}
   function start(mode) {
     stop(); const current = generation;
-    worker = new Worker(new URL('./workers/pico.mjs', import.meta.url), { type: 'module' }); bridgeMode = mode === 'firmware'; serial.textContent = '';followSerial=true;serialLatest.disabled=true;serialInfo.textContent='Serial monitor keeps the most recent 65,536 UTF-16 code units.';
+    worker = new Worker(new URL('./workers/pico.mjs', import.meta.url), { type: 'module' }); boardMode = mode; gp2.disabled = mode !== 'gpio-input'; serial.textContent = '';followSerial=true;serialLatest.disabled=true;serialInfo.textContent='Serial monitor keeps the most recent 65,536 UTF-16 code units.';
     worker.onmessage = event => {
       if (!valid() || current !== generation) return;
       const m = event.data;
       if (m.type === 'led') showLed(m.on);
-      else if (m.type === 'started') tell(mode === 'firmware' ? 'Running firmware locally. Save the project to keep flash changes.' : 'Running the Blink example locally.');
+      else if (m.type === 'started') tell(mode === 'firmware' ? 'Running firmware locally. Save the project to keep flash changes.' : mode === 'blink' ? 'Running the Blink example locally.' : 'Running GPIO input firmware. GPIO 2 low lights GPIO 25.');
       else if (m.type === 'serial') { const text=serial.textContent+m.text;if(text.length>65536){let tail=text.slice(-65536);const first=tail.charCodeAt(0);if(first>=0xdc00&&first<=0xdfff)tail=tail.slice(1);serial.textContent=tail;serialInfo.textContent='Earlier serial output was trimmed; only the most recent output can be saved.';}else serial.textContent=text;if(followSerial)serial.scrollTop = serial.scrollHeight; }
       else if (m.type === 'flash-changed') { changed = true; changeSerial++; }
       else if (m.type === 'serial-queued' && serialPending?.id===m.id) { if(m.accepted){if(serialPending.clear&&input.value===serialPending.text)input.value='';tell('Serial input queued for the board.');}else tell(m.reason==='not-ready'?'Serial connection is not ready yet; your input was kept.':'Serial buffer is full; your input was kept. Try again.');serialPending=null; }
@@ -65,10 +71,10 @@ export function mount(host) {
       else if (m.type === 'error') { workerFailed(mode,'Simulator stopped: ' + m.message); }
     };
     worker.onerror = () => { if (current === generation && valid()) { workerFailed(mode,'Simulator worker failed.'); } };
-    worker.postMessage(mode === 'blink' ? { type: 'blink' } : { type: 'firmware', rom, flash });
+    worker.postMessage(mode === 'firmware' ? { type: mode, rom, flash } : { type: mode });
   }
   async function snapshot({halt=false}={}) {
-    if (!worker || !bridgeMode) return flash;
+    if (!worker || boardMode !== 'firmware') return flash;
     return new Promise((resolve, reject) => { const id = ++request; const timer = setTimeout(() => { pending.delete(id); reject(Error('Board did not respond.')); }, 10000); pending.set(id, { resolve, reject, timer }); worker.postMessage({ type: halt?'halt-snapshot':'snapshot', id }); });
   }
   async function pick(extensions, token) {
@@ -79,8 +85,8 @@ export function mount(host) {
     return { path: c.path(selected), data: new Uint8Array(f.data), version: f.version, sha256: f.sha256, context:c };
   }
   async function confirmBoard(message,title,token=null){const beforeGeneration=generation,beforeChange=changeSerial,beforeEpoch=openEpoch;try{if(!await host.ui.confirm(message,{title,confirmLabel:title==='Reset simulated flash'?'Reset flash':'Replace',cancelLabel:'Keep current board',danger:true,signal:host.signal}))return false;if(!valid()||(token&&!currentOpen(token)))return false;if(generation!==beforeGeneration||changeSerial!==beforeChange||openEpoch!==beforeEpoch){tell('The board changed while the confirmation was open. Try again.');return false;}return true;}catch(e){tell('Could not confirm board change: '+e.message);return false;}}
-  async function openRom() { const token=beginOpen('rom');try { const f = await pick(['.bin'],token); if (!f) return; if (f.data.length !== ROM_SIZE) throw Error('ROM must be exactly 16 KiB.'); if (rom && (changed || bridgeMode) && !await confirmBoard('The running board may have unsaved flash changes. Replace it?','Replace board',token)) return; if(!valid()||!currentOpen(token)||!f.context.valid())return; stop(); clearRecovery(); rom = f.data; changed = true; changeSerial++; if(flash&&baseline&&!flashUncertain)start('firmware');else tell(flashUncertain?'ROM loaded. Recover firmware flash before running it.':'ROM loaded. Open a Pico UF2 next.'); } catch (e) { if(currentOpen(token))tell(e.message); } }
-  async function openFirmware() { const token=beginOpen('firmware');try { const f = await pick(['.uf2'],token); if (!f) return; const newFlash = parseUF2(f.data); if (flash && (changed || bridgeMode) && !await confirmBoard('The running board may have unsaved flash changes. Replace it?','Replace board',token)) return; if(!valid()||!currentOpen(token)||!f.context.valid())return; stop(); clearRecovery(); flash = newFlash; baseline = newFlash.slice(); recoverFlash(); clearWatch();version = null; savedPath = null;state.path=null;state.version=null;w.launchContext=null; changed = true; changeSerial++; if (rom) start('firmware'); else tell('Firmware loaded. Open your RP2040 B1 ROM to run it.'); } catch (e) { if(currentOpen(token))tell(e.message); } }
+  async function openRom() { const token=beginOpen('rom');try { const f = await pick(['.bin'],token); if (!f) return; if (f.data.length !== ROM_SIZE) throw Error('ROM must be exactly 16 KiB.'); if (rom && (changed || boardMode === 'firmware') && !await confirmBoard('The running board may have unsaved flash changes. Replace it?','Replace board',token)) return; if(!valid()||!currentOpen(token)||!f.context.valid())return; stop(); clearRecovery(); rom = f.data; changed = true; changeSerial++; if(flash&&baseline&&!flashUncertain)start('firmware');else tell(flashUncertain?'ROM loaded. Recover firmware flash before running it.':'ROM loaded. Open a Pico UF2 next.'); } catch (e) { if(currentOpen(token))tell(e.message); } }
+  async function openFirmware() { const token=beginOpen('firmware');try { const f = await pick(['.uf2'],token); if (!f) return; const newFlash = parseUF2(f.data); if (flash && (changed || boardMode === 'firmware') && !await confirmBoard('The running board may have unsaved flash changes. Replace it?','Replace board',token)) return; if(!valid()||!currentOpen(token)||!f.context.valid())return; stop(); clearRecovery(); flash = newFlash; baseline = newFlash.slice(); recoverFlash(); clearWatch();version = null; savedPath = null;state.path=null;state.version=null;w.launchContext=null; changed = true; changeSerial++; if (rom) start('firmware'); else tell('Firmware loaded. Open your RP2040 B1 ROM to run it.'); } catch (e) { if(currentOpen(token))tell(e.message); } }
   async function openProject(selected,{initialLoad=false,expectedSHA}={}) {
     const token=beginOpen('project');
     let opened=false,broken=false,context,restoreError;
@@ -110,7 +116,7 @@ export function mount(host) {
       let project;
       try { project=decodeProject(file.data); }
       catch(error) { broken=true; throw error; }
-      if((changed||bridgeMode) && !await confirmBoard('The running board may have unsaved flash changes. Replace it?','Replace board',token)) return;
+      if((changed||boardMode === 'firmware') && !await confirmBoard('The running board may have unsaved flash changes. Replace it?','Replace board',token)) return;
       if(!valid()||!context.valid()||!currentOpen(token)) return;
       stop();
       clearRecovery();
@@ -145,14 +151,15 @@ export function mount(host) {
   async function saveProject() { if (saving||choosingFolder) return; const requestedPath=path.value;saving = true; try { if (flashUncertain) throw Error('Recover firmware flash before saving: reopen a project, load a UF2, or reset flash.'); if (!rom || !flash || !baseline) throw Error('Open a ROM and firmware first.'); const boardGeneration=generation,copy = await snapshot(); const atSnapshot = changeSerial; if (!valid()) return; const c = await workspaceMirrorContext(), target = savePath(c, requestedPath, savedPath || defaultProject, '.pico'); const data = encodeProject(rom, copy, baseline); let expected=null;try{const old=await c.files.stat(target);if(old.status==='conflict')throw Error('Resolve this file conflict in Files first.');if(target===savedPath&&version){if(old.version!==version)throw Error('The saved project changed. Save a copy or reopen it.');}else if(!await host.ui.confirm('Replace '+target+'?',{title:'Replace Pico project',confirmLabel:'Replace',cancelLabel:'Cancel',danger:true,signal:host.signal})){tell('Project save cancelled.');return;}expected=old.version;}catch(e){if(e.message!=='File not found.')throw e;if(target===savedPath&&version)throw Error('The saved project was removed. Save a copy or reopen it.');}if(!valid()||!c.valid())return;if(generation!==boardGeneration)throw Error('The board changed while saving; try again.');const result = await c.files.write(target, data, expected); if (!valid() || !c.valid()) return;if(generation!==boardGeneration){tell('Saved the earlier board; the current board has changed.');return;} flash = copy; clearRecovery(); savedPath = target; if(path.value===requestedPath)path.value=target; version = result.version;state.path=target;state.version=result.version;w.launchContext=Object.freeze({version:1,storage:c.storage||'mirror',path:target,owner,sha256:result.sha256});w.title=target.split('/').pop()+' — Pico Simulator';watch(c,target); changed = changeSerial !== atSnapshot; tell(result.status==='conflict'?'Saved locally with a conflict. Resolve it in Files.':changed ? 'Saved earlier flash changes; newer changes are unsaved.' : c.storage==='temporary' ? 'Project saved in this tab.' : 'Project saved on this device; syncing with the server.'); } catch (e) { tell(e.message); } finally { saving = false; } }
   async function halt() {
     openEpoch++;
-    const boardGeneration = generation, firmware = bridgeMode;
-    const blinking = worker && !firmware;
+    const boardGeneration = generation, firmware = boardMode === 'firmware';
+    const previousMode = boardMode;
     try {
       const copy = firmware ? await snapshot({halt:true}) : null;
       if (!valid() || generation !== boardGeneration) return;
       if (copy) flash = copy;
       stop();
-      if (blinking) tell('Blink stopped.');
+      if (previousMode === 'blink') tell('Blink stopped.');
+      else if (previousMode === 'gpio-input') tell('GPIO input example stopped.');
       else if (flashUncertain) tell('Board stopped. Recover firmware flash before saving.');
       else if (rom && flash && baseline) tell('Board stopped. Save the project to keep flash changes.');
       else tell('Board stopped.');
@@ -163,10 +170,20 @@ export function mount(host) {
     }
   }
   async function resetFlash() { if (!baseline || !rom) { tell('Open a ROM and firmware first.'); return; } if (!await confirmBoard('Erase this board’s simulated flash changes and restore its original firmware?','Reset simulated flash')) return; openEpoch++;stop(); flash = baseline.slice(); recoverFlash(); changed = true; changeSerial++; start('firmware'); }
-  function sendBytes(bytes,text='',clear=false) { if (!worker || !bridgeMode) { tell('Start a firmware board before sending serial input.'); return; } if(serialPending){tell('Wait for the previous serial input.');return;}if(bytes.length>256){tell('Serial input is limited to 256 UTF-8 bytes including the newline.');return;}serialPending={id:++serialRequest,text,clear};worker.postMessage({type:'serial',id:serialRequest,bytes}); }
+  function sendBytes(bytes,text='',clear=false) { if (!worker || boardMode !== 'firmware') { tell('Start a firmware board before sending serial input.'); return; } if(serialPending){tell('Wait for the previous serial input.');return;}if(bytes.length>256){tell('Serial input is limited to 256 UTF-8 bytes including the newline.');return;}serialPending={id:++serialRequest,text,clear};worker.postMessage({type:'serial',id:serialRequest,bytes}); }
   function send() { const text=input.value;sendBytes(new TextEncoder().encode(text+'\r\n'),text,true); }
   input.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); send(); } });
-  toolbar.append(textButton('Run Blink', async () => { if ((changed || bridgeMode) && !await confirmBoard('The running board may have unsaved flash changes. Replace it?','Replace board')) return; if(!valid())return; openEpoch++;clearRecovery();clearWatch();version=null;savedPath=null;state.path=null;state.version=null;w.launchContext=null;changed = false; start('blink'); }), textButton('Open ROM', openRom), textButton('Open UF2', openFirmware), textButton('Open project', () => openProject()), retry, textButton('Run firmware', () => { if (flashUncertain) tell('Recover firmware flash before running: reopen a project, load a UF2, or reset flash.'); else if (!rom || !flash) tell('Open a ROM and firmware first.'); else if (!bridgeMode) {openEpoch++;start('firmware');} }), textButton('Stop', halt), textButton('Reset flash', resetFlash));
+  async function runExample(mode) {
+    if ((changed || boardMode === 'firmware') && !await confirmBoard('The running board may have unsaved flash changes. Replace it?', 'Replace board')) return;
+    if (!valid()) return;
+    openEpoch++;
+    clearRecovery();
+    clearWatch();
+    version = savedPath = state.path = state.version = w.launchContext = null;
+    changed = false;
+    start(mode);
+  }
+  toolbar.append(textButton('Run Blink', () => runExample('blink')), textButton('Run GPIO input', () => runExample('gpio-input')), textButton('Open ROM', openRom), textButton('Open UF2', openFirmware), textButton('Open project', () => openProject()), retry, textButton('Run firmware', () => { if (flashUncertain) tell('Recover firmware flash before running: reopen a project, load a UF2, or reset flash.'); else if (!rom || !flash) tell('Open a ROM and firmware first.'); else if (boardMode !== 'firmware') {openEpoch++;start('firmware');} }), textButton('Stop', halt), textButton('Reset flash', resetFlash));
   async function chooseFolder(input){if(choosingFolder||saving||!valid())return;choosingFolder=true;const original=input.value,board=generation,epoch=openEpoch,project=savedPath,projectVersion=version,opens={...openSerial};try{const dir=await host.storage.pickFolder({signal:host.signal});if(dir===null||!valid())return;const c=await workspaceMirrorContext();if(!valid()||!c.valid())return;if(input.value!==original||generation!==board||openEpoch!==epoch||savedPath!==project||version!==projectVersion||Object.keys(opens).some(k=>opens[k]!==openSerial[k])){tell('The destination or board changed while choosing a folder. Choose again.');return;}input.value=c.path((dir==='/'?'':dir)+'/'+c.name(original.split('/').pop()));}catch(e){tell(e.message);}finally{choosingFolder=false;}}
   async function folder(){return chooseFolder(path);}
   const defaultSerialOutput = '/Pico-serial.txt';
@@ -184,8 +201,8 @@ export function mount(host) {
   if(host.commands){
     const ready=()=>{if(!valid()||!body.isConnected)throw Error('The simulator window is closed.');};
     const argsFor=(args,keys)=>{if(!args||typeof args!=='object'||Array.isArray(args)||Object.keys(args).some(k=>!keys.includes(k)))throw Error('Invalid command arguments.');};
-    const inspect=host.commands.register({id:'inspect',description:'Inspect the simulated Pico board and flash state.',parameters:{type:'object',additionalProperties:false}},args=>{ready();argsFor(args,[]);return {mode:worker?(bridgeMode?'firmware':'blink'):'stopped',led:!!led.value,romLoaded:!!rom,flashLoaded:!!flash,flashChanged:changed,flashUncertain,path:savedPath,status:status.textContent,fileNotice:fileWarning.hidden?'':fileWarning.textContent,note:'Simulated board only; timing and electrical behavior are not hardware validation.'};});host.onDispose(inspect);
-    const read=host.commands.register({id:'read-serial',description:'Read the most recent retained simulated serial output.',parameters:{type:'object',properties:{limit:{type:'integer',minimum:1,maximum:4096}},additionalProperties:false}},args=>{ready();argsFor(args,['limit']);const limit=args.limit??1024;if(!Number.isSafeInteger(limit)||limit<1||limit>4096)throw Error('Invalid serial text limit.');const text=serial.textContent;let result=text.slice(-limit),truncated=text.length>limit||serialInfo.textContent.startsWith('Earlier serial output was trimmed');if(/^[\uDC00-\uDFFF]/.test(result)){result=result.slice(1);truncated=true;}return {text:result,truncated,mode:worker?(bridgeMode?'firmware':'blink'):'stopped',note:'Only the currently retained serial output is available.'};});host.onDispose(read);
+    const inspect=host.commands.register({id:'inspect',description:'Inspect the simulated Pico board and flash state.',parameters:{type:'object',additionalProperties:false}},args=>{ready();argsFor(args,[]);return {mode:boardMode,led:led.classList.contains('is-lit'),romLoaded:!!rom,flashLoaded:!!flash,flashChanged:changed,flashUncertain,path:savedPath,status:status.textContent,fileNotice:fileWarning.hidden?'':fileWarning.textContent,note:'Simulated board only; timing and electrical behavior are not hardware validation.'};});host.onDispose(inspect);
+    const read=host.commands.register({id:'read-serial',description:'Read the most recent retained simulated serial output.',parameters:{type:'object',properties:{limit:{type:'integer',minimum:1,maximum:4096}},additionalProperties:false}},args=>{ready();argsFor(args,['limit']);const limit=args.limit??1024;if(!Number.isSafeInteger(limit)||limit<1||limit>4096)throw Error('Invalid serial text limit.');const text=serial.textContent;let result=text.slice(-limit),truncated=text.length>limit||serialInfo.textContent.startsWith('Earlier serial output was trimmed');if(/^[\uDC00-\uDFFF]/.test(result)){result=result.slice(1);truncated=true;}return {text:result,truncated,mode:boardMode,note:'Only the currently retained serial output is available.'};});host.onDispose(read);
   }
   const launch=w.launchContext;
   if(['mirror','temporary'].includes(launch?.storage)&&launch.owner===owner) {

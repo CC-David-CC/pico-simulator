@@ -190,3 +190,38 @@ retained serial output. Firmware replacement, serial input and flash operations
 remain in the normal interface; the commands do not bypass confirmations or
 provide remote agent access. Blink does not have a saved firmware project, and
 the simulated board is not a physical timing or electrical validation.
+
+## Replay a driven input with ROM-free firmware
+
+Choose **Run GPIO input**. With **GPIO 2 input high** unchecked, the
+onboard GPIO 25 LED lights. Check the input to extinguish it and uncheck
+it to relight it. **Stop** ends the worker. Starting this example again
+creates a fresh chip with the input low.
+
+The worker loads [the assembled fixture](examples/gpio-input.mjs) into
+SRAM and sets the core PC to 0x20000000, using the same direct entry as
+Blink. The switch supplies `gpio[2].setInputValue(high)` in rp2040js
+1.4.1. The [Thumb program](examples/gpio-input.S) selects SIO, enables the
+GPIO2 pad input and sets GPIO25 output enable. It loops on bit 2 of
+SIO GPIO_IN and writes bit 25 to GPIO_OUT_SET for low or GPIO_OUT_CLR for
+high. The existing GPIO25 listener drives the visible indicator. This
+exercise uses a driven digital level and the assembled program's SRAM
+entry point. Boot ROM, flash and USB are outside this path.
+
+Reassemble the fixture with GNU Arm binutils and compare the bytes with
+the checked-in array from this directory:
+
+```sh
+arm-none-eabi-as -mcpu=cortex-m0plus -mthumb examples/gpio-input.S -o /tmp/gpio-input.o
+arm-none-eabi-objcopy -O binary -j .text /tmp/gpio-input.o /tmp/gpio-input.bin
+sha256sum /tmp/gpio-input.bin
+node --input-type=module -e "import {gpioInput} from './examples/gpio-input.mjs'; import fs from 'node:fs'; import assert from 'node:assert/strict'; assert.deepEqual(Buffer.from(gpioInput), fs.readFileSync('/tmp/gpio-input.bin'))"
+```
+
+Expected SHA-256 for the 56 bytes is
+`50c43a9969b5ddd04b39ecb77c05b52493f381d77ab53cc288efe8720d9e1f96`.
+`npm test` changes the input, checks that the output holds until the CPU
+steps, then verifies all five inverted output levels. The Playwright
+scenario in `tests/browser/gpio_input.py` takes an authenticated WebOS
+page and an evidence directory. It runs the packaged worker through the
+normal controls and also observes two transitions of the original Blink.
